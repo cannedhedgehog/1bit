@@ -91,7 +91,6 @@ CREATE TABLE IF NOT EXISTS company  (
    maintenance_pc  VARCHAR(45) NULL,
    antivirus  VARCHAR(45) NULL,
    comments  VARCHAR(200) NULL,
-   version  INT NOT NULL,
    date  DATE NOT NULL,
    employee_id  INT NOT NULL,
    
@@ -135,11 +134,9 @@ CREATE TABLE IF NOT EXISTS   company_contact  (
 CREATE TABLE IF NOT EXISTS   checklist_for_company  (
    company_id  INT NOT NULL,
    checklist_id  INT NOT NULL,
-   status  VARCHAR(45) NOT NULL,
+   status  VARCHAR(45),
    comment  VARCHAR(45) NULL,
-   date_start  DATE NOT NULL,
-   request_from_company  INT NOT NULL,
-   version  INT NOT NULL,
+   date  DATE NOT NULL,
    employee_id  INT NOT NULL,
    
    FOREIGN KEY ( employee_id ) REFERENCES   employee  ( id ));
@@ -217,7 +214,7 @@ INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  pr
 ( 'инфоповод3', 'описание3', 1, 1000, 4000, 3, 3, 6),
 ( 'инфоповод4', 'описание4', 0, 2500, 6000, 2, 2, 24);
  
-
+INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  price_to ,  configurations_id ,  type_of_business_id ,  duration ) VALUES  ( 'инфоповод5', 'описание5', 0, 2500, 6000, 1, 1, 24);
 
 -- -----------------------------------------------------
 -- Data for table   group_of_companies 
@@ -302,3 +299,12 @@ INSERT INTO   type_of_business_has_company  ( company_id ,  type_of_business_id 
 (4, 2);
  
 
+/*
+SET FOREIGN_KEY_CHECKS=0;
+DELETE FROM company WHERE id = 1;
+SELECT * FROM checklist_for_company;
+SELECT * FROM company_has_configurations;
+
+SELECT * FROM type_of_business_has_company;
+SELECT * FROM company_address;
+*/

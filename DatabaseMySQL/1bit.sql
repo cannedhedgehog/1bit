@@ -1,14 +1,16 @@
+-- Изначальный файл со всеми запросами, процедурами, триггерами
+
 USE DB1bit;
 
 -- -----------------------------------------------------
--- Запрос компаний по алфавиту
+-- Запрос компаний по алфавиту *
 -- -----------------------------------------------------
 SELECT name FROM company ORDER BY name ASC;
 
 
 DELIMITER //
 -- -----------------------------------------------------
--- Запрос компаний по конфигурациям по алфавиту
+-- Запрос компаний по конфигурациям по алфавиту *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_company_of_conf (configurationsId INT)
 BEGIN
@@ -20,7 +22,7 @@ CALL request_company_of_conf(1)//
 
 
 -- -----------------------------------------------------
--- Запрос компаний по виду деят по алфавиту
+-- Запрос компаний по виду деят по алфавиту *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_company_of_type (typeOfBusinessId INT)
 BEGIN
@@ -31,9 +33,9 @@ END
 CALL request_company_of_type(3)//
 
 
--- ----------------------------------------------------------------------------------------------
--- Запрос краткой информации о компании и о их программе как шпаргалка для заполнения чек-листа
--- ----------------------------------------------------------------------------------------------
+-- -------------------------------------------------------------------------------------------------
+-- Запрос краткой информации о компании и о их программе как шпаргалка для заполнения чек-листа * 
+-- -------------------------------------------------------------------------------------------------
 CREATE PROCEDURE request_brief (companyId INT)
 BEGIN
 	SELECT co.name, conf.name AS configuration_name, chc.version, chc.update_by, chc.date_of_update, e.name AS equipment, co.server_license, co.maintenance_pc, co.antivirus, 
@@ -46,23 +48,8 @@ END
 CALL request_brief(2)//
 
 
--- ---------------------------------------------------------------------------------------------
--- Запрос чек-листа в соответствии с конфигурацией и видом деятельности компании для сотрудника
--- ---------------------------------------------------------------------------------------------
-CREATE PROCEDURE request_checklist(IN companyId INT)
-BEGIN
-    SELECT c.name AS company_name, ch.title, ch.price_from, ch.price_to FROM checklist ch
-    JOIN company c ON c.id = companyId JOIN company_has_configurations chc ON (c.id = chc.company_id)
-    JOIN configurations conf ON (chc.configurations_id = conf.id) JOIN type_of_business_has_company tobhc ON (c.id = tobhc.company_id)
-    JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id)
-    WHERE ch.type_of_business_id = tob.id AND ch.configurations_id = conf.id;
-END //
-
-CALL request_checklist(1)//
-
-
 -- -----------------------------------------------------
--- Запрос общей информации о компании
+-- Запрос общей информации о компании *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_company_info (companyId INT)
 BEGIN
@@ -78,35 +65,47 @@ END
 CALL request_company_info(4)//
 
 
+-- ---------------------------------------------------------------------------------------------
+-- Запрос чек-листа в соответствии с конфигурацией и видом деятельности компании *
+-- ---------------------------------------------------------------------------------------------
+CREATE PROCEDURE request_checklist(IN companyId INT)
+BEGIN
+    SELECT c.name AS company_name, ch.title, ch.price_from, ch.price_to FROM checklist ch
+    JOIN company c ON c.id = companyId JOIN company_has_configurations chc ON (c.id = chc.company_id)
+    JOIN configurations conf ON (chc.configurations_id = conf.id) JOIN type_of_business_has_company tobhc ON (c.id = tobhc.company_id)
+    JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id)
+    WHERE ch.type_of_business_id = tob.id AND ch.configurations_id = conf.id ORDER BY ch.priority;
+END //
+
+CALL request_checklist(2)//
+
+
 -- -----------------------------------------------------
--- Запрос журнала 
+-- Запрос уже заполенненого чек-листа
 -- -----------------------------------------------------
 CREATE PROCEDURE request_checklist_for_company (companyId INT)
 BEGIN
-	SELECT * FROM checklist_for_company WHERE companyId = company_id; -- надо добавить группировку по заявкам компании 
+	SELECT * FROM checklist_for_company WHERE companyId = company_id;
 END
 //
 
-CALL request_checklist_for_company(1)//
-
-
-
--- надо написать триггер которые обновляет чеклист если у инфоповода прошел период
-
--- -----------------------------------------------------
--- запрос всех инфоповодов чек-листа
--- -----------------------------------------------------
-SELECT name FROM checklist//
+CALL request_checklist_for_company(2)//
 
 
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по алфавиту
+-- запрос всех инфоповодов чек-листа *
 -- -----------------------------------------------------
-SELECT name FROM checklist ORDER BY name ASC//
+SELECT title FROM checklist//
 
 
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по конфигурациям
+-- Запрос инфоповодов чек-листа по алфавиту *
+-- -----------------------------------------------------
+SELECT title FROM checklist ORDER BY title ASC//
+
+
+-- -----------------------------------------------------
+-- Запрос инфоповодов чек-листа по конфигурациям *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_checklist_of_conf (configurationsId INT)
 BEGIN
@@ -116,27 +115,89 @@ END
 
 CALL request_checklist_of_conf(1)//
 
+
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по частоте исполнения
+-- Запрос инфоповодов чек-листа по частоте исполнения *
 -- -----------------------------------------------------
+SELECT c.title FROM checklist c LEFT JOIN checklist_for_company cfc ON c.id = cfc.checklist_id GROUP BY c.title ORDER BY COUNT(cfc.checklist_id) DESC//
 
 
 -- -----------------------------------------------------
--- Запрос информации и инфоповоде
+-- Запрос информации и инфоповоде *
 -- -----------------------------------------------------
+CREATE PROCEDURE request_checklist_info (checklistId INT)
+BEGIN
+	SELECT title, description, priority, price_from, price_to FROM checklist WHERE checklistId = id;
+END
+//
 
--- -----------------------------------------------------
--- Запрос всех сотрудников
--- -----------------------------------------------------
-
-
--- -----------------------------------------------------
--- Запрос всех сотрудников по алфавиту
--- -----------------------------------------------------
+CALL request_checklist_info(1)//
 
 
--- -----------------------------------------------------
--- Запрос информации и сотруднике
--- -----------------------------------------------------
+-- ------------------------------------------------------------------
+-- триггер для обновления чеклиста, если у инфоповода прошел период
+-- ------------------------------------------------------------------
+CREATE TRIGGER update_status_after_insert AFTER INSERT ON checklist_for_company
+FOR EACH ROW
+BEGIN
+    DECLARE checklist_duration INT;
 
--- статистика по group by и having 
+    SELECT duration INTO checklist_duration FROM checklist WHERE id = NEW.checklist_id;
+
+    IF (NEW.status = 'отказано' OR NEW.status = 'под вопросом') AND  date_end = DATE_ADD(NEW.date_start, INTERVAL checklist_duration MONTH) < NOW() THEN
+        UPDATE checklist_for_company
+        SET date_end = NEW.date_end
+        WHERE checklist_id = NEW.checklist_id;
+    END IF;
+END
+//
+
+
+-- -----------------------------------------------------
+-- Запрос всех сотрудников *
+-- -----------------------------------------------------
+SELECT name FROM employee//
+
+
+-- -----------------------------------------------------
+-- Запрос всех сотрудников по алфавиту *
+-- -----------------------------------------------------
+SELECT name FROM employee ORDER BY name ASC//
+
+
+-- -----------------------------------------------------
+-- Запрос информации и сотруднике *
+-- -----------------------------------------------------
+CREATE PROCEDURE request_employee (employeeId INT)
+BEGIN
+	SELECT name, role, position, login, password FROM employee WHERE employeeId = id;
+END
+//
+
+
+CALL request_employee(1)//
+
+
+-- ----------------------------------------------------------------------------
+-- Триггер, который при удалении компании удаляет также записи из других таблиц
+-- ----------------------------------------------------------------------------
+CREATE TRIGGER before_company_delete BEFORE DELETE ON company
+FOR EACH ROW
+BEGIN
+    DELETE FROM checklist_for_company WHERE company_id = OLD.id;
+    DELETE FROM company_has_configurations WHERE company_id = OLD.id;
+    DELETE FROM type_of_business_has_company WHERE company_id = OLD.id;
+    DELETE FROM company_address WHERE company_id = OLD.id;
+END//
+
+-- ------------------------------------------------------------------------
+-- Триггер, который при удалении инфоповода удаляет записи из других таблиц
+-- ------------------------------------------------------------------------
+CREATE TRIGGER before_checklist_delete AFTER DELETE ON checklist
+FOR EACH ROW
+BEGIN
+    DELETE FROM checklist_for_company WHERE checklist_id = OLD.id;
+END//
+
+
+
