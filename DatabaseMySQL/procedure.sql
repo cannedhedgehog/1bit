@@ -4,7 +4,7 @@ USE DB1bit;
 DELIMITER //
 
 -- -----------------------------------------------------------------------------------------------------------
--- Процедура для вывода краткой информации о компании и их программы как шпаргалка для заполнения чек-листа 
+-- Процедура для вывода краткой информации о компании и их программы как шпаргалка для заполнения чек-листа *
 -- -----------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE request_brief (companyId INT)
 BEGIN
@@ -18,27 +18,32 @@ END
 CALL request_brief(2)// -- пример вызова
 
 
--- ---------------------------------------------------------------------------------------------------
--- Процедура для генерации чек-листа для компании в соответствии с конфигурацией и видом деятельности
--- ---------------------------------------------------------------------------------------------------
-CREATE PROCEDURE request_checklist(IN companyId INT)
+-- ------------------------------------------------------------------------------------------------------
+-- Процедура для генерации чек-листа для компании в соответствии с конфигурацией и видом деятельности *
+-- ------------------------------------------------------------------------------------------------------
+CREATE PROCEDURE generating_checklist(IN companyId INT)
 BEGIN
-	IF NOT EXISTS (SELECT 1 FROM checklist_for_company WHERE checklist_id = (SELECT id FROM checklist)) THEN
+	IF NOT EXISTS (SELECT * FROM checklist_for_company WHERE checklist_id = (SELECT ch.id FROM checklist ch JOIN company_has_configurations chc ON ch.configurations_id = chc.configurations_id AND chc.company_id = companyId JOIN type_of_business_has_company tobhc ON ch.type_of_business_id = tobhc.type_of_business_id AND tobhc.company_id = companyId)) THEN
 		SELECT c.name AS company_name, ch.title, ch.price_from, ch.price_to FROM checklist ch 
 		JOIN company c ON c.id = companyId JOIN company_has_configurations chc ON (c.id = chc.company_id)
 		JOIN configurations conf ON (chc.configurations_id = conf.id) JOIN type_of_business_has_company tobhc ON (c.id = tobhc.company_id)
 		JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id)
 		WHERE ch.type_of_business_id = tob.id AND ch.configurations_id = conf.id ORDER BY ch.priority DESC LIMIT 5;
 	ELSE
-		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Этот пункт уже предложен';
+		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Для этой компании уже существуют подходящие чеклисты';
 	END IF;
 END //
 
-CALL request_checklist(2)// -- пример вызова
+CALL generating_checklist(2)// -- пример вызова
+
+/* test
+INSERT INTO checklist_for_company (company_id, checklist_id, status, comment, date, employee_id ) VALUE (2,2,'отказано',NULL, current_date(), 1) //
+select * from checklist_for_company//
+*/
 
 
 -- --------------------------------------------------
--- Процедура для вывода общей информации о компании
+-- Процедура для вывода общей информации о компании *
 -- --------------------------------------------------
 CREATE PROCEDURE request_company_info (companyId INT)
 BEGIN
@@ -47,7 +52,7 @@ BEGIN
     FROM company co JOIN group_of_companies g ON (co.group_of_companies_id = g.id) JOIN equipment e ON (co.equipment_id = e.id) JOIN type_of_business_has_company tobhc ON (co.id = tobhc.company_id) 
     JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id) JOIN company_has_configurations chc ON (co.id = chc.company_id) JOIN configurations conf ON (chc.configurations_id = conf.id) 
     JOIN company_address ca ON (co.id = ca.company_id) JOIN company_contact cc ON (ca.id = cc.company_address_id) 
-    WHERE companyId = co.id; -- должен вывести актуальную информацию, т.е последнее сохранение/ последнюю версию
+    WHERE companyId = co.id; 
 END
 //
 
@@ -55,19 +60,19 @@ CALL request_company_info(4)// -- пример вызова
 
 
 -- -------------------------------------------------
--- Процедура для вывода уже заполеннного чек-листа 
+-- Процедура для вывода уже заполеннного чек-листа  *
 -- -------------------------------------------------
-CREATE PROCEDURE request_checklist_for_company (companyId INT)
+CREATE PROCEDURE request_checklist_for_company (companyId INT, sstatus VARCHAR(45))
 BEGIN
-	SELECT * FROM checklist_for_company WHERE companyId = company_id; -- можно сделать так чтобы просматривалось все или только те которые были согласованы= чтобы менеджер смог добавить в асана
+	SELECT * FROM checklist_for_company WHERE companyId = company_id AND sstatus = status; -- можно сделать так чтобы просматривалось все или только те которые были согласованы/отказаны/под вопросом= чтобы менеджер смог добавить в асана
 END
 //
 
-CALL request_checklist_for_company(2)//
+CALL request_checklist_for_company(2, 'отказано')//
 
 
--- -- -----------------------------------------------------
--- Запрос информации и сотруднике 
+-- -- --------------------------------------------------
+-- Запрос информации и сотруднике *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_employee (employeeId INT)
 BEGIN
@@ -79,19 +84,19 @@ CALL request_employee(1)//
 
 
 -- -----------------------------------------------------
--- запрос всех инфоповодов чек-листа 
+-- запрос всех инфоповодов чек-листа *
 -- -----------------------------------------------------
 SELECT title FROM checklist//
 
 
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по алфавиту 
+-- Запрос инфоповодов чек-листа по алфавиту *
 -- -----------------------------------------------------
 SELECT title FROM checklist ORDER BY title ASC//
 
 
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по конфигурациям 
+-- Запрос инфоповодов чек-листа по конфигурациям *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_checklist_of_conf (configurationsId INT)
 BEGIN
@@ -103,13 +108,13 @@ CALL request_checklist_of_conf(1)//
 
 
 -- -----------------------------------------------------
--- Запрос инфоповодов чек-листа по частоте исполнения 
+-- Запрос инфоповодов чек-листа по частоте исполнения *
 -- -----------------------------------------------------
-SELECT c.title FROM checklist c LEFT JOIN checklist_for_company cfc ON c.id = cfc.checklist_id GROUP BY c.title ORDER BY COUNT(cfc.checklist_id) DESC//
+SELECT title FROM checklist ORDER BY count DESC//
 
 
 -- -----------------------------------------------------
--- Запрос информации и инфоповоде 
+-- Запрос информации о инфоповоде *
 -- -----------------------------------------------------
 CREATE PROCEDURE request_checklist_info (checklistId INT)
 BEGIN
@@ -120,9 +125,10 @@ END
 CALL request_checklist_info(1)//
 
 
--- ---------------------------------------------------------------------
--- Процедура для обновления чеклиста, если у инфоповода прошел период (удаляет запись из таблицы checklist_for_company)
--- ---------------------------------------------------------------------
+-- ------------------------------------------------------------------------------------------------------------------------
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Процедура для обновления чеклиста, если у инфоповода прошел период (удаляет запись из таблицы checklist_for_company) *
+-- ---------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE cleanup_expired_checklist_for_company()
 BEGIN
     DELETE cfc FROM checklist_for_company cfc JOIN checklist c ON (cfc.checklist_id = c.id)
@@ -139,4 +145,10 @@ SET GLOBAL event_scheduler = ON//
 -- -----------------------------------------------------
 CREATE EVENT IF NOT EXISTS auto_checklist_cleanup ON SCHEDULE EVERY 1 DAY STARTS CURRENT_TIMESTAMP DO
 CALL cleanup_expired_checklist_for_company()//
+-- --------------------------------------------------------------------------------------------------------------------------
 
+/*  test
+INSERT INTO checklist_for_company (company_id, checklist_id, status, final_price, comment, date, employee_id ) VALUE (2,3,'согласовано',1000,NULL, current_date(), 1) //
+select * from checklist//
+select * from checklist_for_company//
+*/

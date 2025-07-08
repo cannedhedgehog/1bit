@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS checklist  (
    configurations_id  INT NOT NULL,
    type_of_business_id  INT NOT NULL,
    duration  INT NOT NULL,
+   count INT,
    
    FOREIGN KEY ( configurations_id ) REFERENCES   configurations  ( id ),
    FOREIGN KEY ( type_of_business_id ) REFERENCES   type_of_business  ( id ));
@@ -68,8 +69,7 @@ CREATE TABLE IF NOT EXISTS group_of_companies  (
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS equipment  (
    id  INT NOT NULL AUTO_INCREMENT KEY,
-   name  VARCHAR(45) NOT NULL,
-   period  INT NOT NULL);
+   name  VARCHAR(45) NOT NULL);
 
 
 -- -----------------------------------------------------
@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS   checklist_for_company  (
    company_id  INT NOT NULL,
    checklist_id  INT NOT NULL,
    status  VARCHAR(45),
+   final_price INT NOT NULL,
    comment  VARCHAR(45) NULL,
    date  DATE NOT NULL,
    employee_id  INT NOT NULL,
@@ -181,28 +182,23 @@ INSERT INTO   employee  (name ,  role ,  position ,  login ,  password ) VALUES
 ('сотрудник3', 'МОС', 'менеджер', 'empl3', '1111');
  
 
-
 -- -----------------------------------------------------
 -- Data for table   configurations 
 -- -----------------------------------------------------
- 
 INSERT INTO   configurations  ( name ) VALUES 
 ( 'конфигурация1'),
 ( 'конфигурация2'),
 ( 'конфигурация3');
  
 
-
 -- -----------------------------------------------------
 -- Data for table   type_of_business 
 -- -----------------------------------------------------
- 
 INSERT INTO   type_of_business  (  name ) VALUES 
 ( 'вид_деят1'),
 ( 'вид_деят2'),
 ( 'вид_деят3');
  
-
 
 -- -----------------------------------------------------
 -- Data for table   checklist 
@@ -214,46 +210,39 @@ INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  pr
 ( 'инфоповод3', 'описание3', 1, 1000, 4000, 3, 3, 6),
 ( 'инфоповод4', 'описание4', 0, 2500, 6000, 2, 2, 24);
  
-INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  price_to ,  configurations_id ,  type_of_business_id ,  duration ) VALUES  ( 'инфоповод5', 'описание5', 0, 2500, 6000, 1, 1, 24);
 
 -- -----------------------------------------------------
 -- Data for table   group_of_companies 
 -- -----------------------------------------------------
- 
-INSERT INTO   group_of_companies  (  name ) VALUES 
+INSERT INTO   group_of_companies  ( name ) VALUES 
 ( 'group1'),
 ( 'group2'),
 ( 'group3');
  
 
-
 -- -----------------------------------------------------
 -- Data for table   equipment 
 -- -----------------------------------------------------
+INSERT INTO   equipment  (  name ) VALUES 
+( 'касса1'),
+( 'касса2'),
+( 'касса3');
  
-INSERT INTO   equipment  (  name ,  period ) VALUES 
-( 'касса1', 3),
-( 'касса2', 3),
-( 'касса3', 6);
- 
-
 
 -- -----------------------------------------------------
 -- Data for table   company 
 -- -----------------------------------------------------
- 
-INSERT INTO   company  (  name ,  TIN ,  ITS ,  industry ,  group_of_companies_id ,  staff ,  database_num ,  web ,  equipment_id ,  taxation_system ,  server_license ,  maintenance_pc ,  antivirus ,  comments ,  version ,  date ,  employee_id ) VALUES 
-( 'компания а', 2222058686, 'проф', 'категория1', 1, 40, 2, 'маркетплейс', 3, 'ОСН', 'сервер 1с', 'сисадмин', 'касперского', 'пометка1', 1, '2025-06-30', 3),
-( 'компания б', 1234567890, 'бюджет', NULL, 2, 25, 1, 'маркетплейс', 2, 'ОСН', 'сервер 1с', 'сисадмин', 'касперского', 'пометка2', 1, '2025-06-30', 3),
-( 'компания в', 0987654321, 'отраслевойй', NULL, 3, 50, 2, 'сайт', 1, 'УСН', 'сервер 1с', 'обслуживается в компании', 'доктор веб', NULL, 1, '2025-06-30', 3),
-( 'компания г', 5138651648, 'ритейл', 'категория4', 1, 30, 1, 'сайт', 1, 'УСН', 'мини сервер', 'приходящий', NULL, 'пометка4', 1, '2025-06-30', 3);
+INSERT INTO   company  (  name ,  TIN ,  ITS ,  industry ,  group_of_companies_id ,  staff ,  database_num ,  web ,  equipment_id ,  taxation_system ,  server_license ,  maintenance_pc ,  antivirus ,  comments ,  date ,  employee_id ) VALUES 
+( 'компания а', 2222058686, 'проф', 'категория1', 1, 40, 2, 'маркетплейс', 3, 'ОСН', 'сервер 1с', 'сисадмин', 'касперского', 'пометка1', '2025-06-30', 3),
+( 'компания б', 1234567890, 'бюджет', NULL, 2, 25, 1, 'маркетплейс', 2, 'ОСН', 'сервер 1с', 'сисадмин', 'доктор веб', 'пометка2', '2025-06-30', 3),
+( 'компания в', 0987654321, 'отраслевойй', 'категория4', 3, 50, 2, 'сайт', 1, 'УСН', 'сервер 1с', 'обслуживается в компании', NULL, NULL, '2025-06-30', 3),
+( 'компания г', 5138651648, 'ритейл', NULL, 1, 30, 1, 'сайт', 1, 'УСН', 'мини сервер', 'приходящий', 'касперского', 'пометка4', '2025-06-30', 3);
  
 
 
 -- -----------------------------------------------------
 -- Data for table   company_address 
 -- -----------------------------------------------------
- 
 INSERT INTO   company_address  (  company_id ,  address ) VALUES 
 ( 1, 'Владивосток Гоголя 41 оф 1312'),
 ( 1, 'Уссурийск Кирова 16 оф 1'),
@@ -266,7 +255,6 @@ INSERT INTO   company_address  (  company_id ,  address ) VALUES
 -- -----------------------------------------------------
 -- Data for table   company_contact 
 -- -----------------------------------------------------
- 
 INSERT INTO   company_contact  (  company_address_id ,  name ,  position ,  phone_number ,  email ,  city ,  work_day_of_week ,  work_time_from ,  work_time_to ) VALUES 
 ( 1, 'ФИО1', 'Менеджер', 79681545288, 'mail.ru', 'Владивосток', 'пн-пт', '09:00:00', '19:00:00'),
 ( 2, 'ФИО2', 'Руководитель отдела продаж', 79681545288, 'mail.ru', 'Уссурийск', 'пн-пт', '09:00:00', '17:00:00'),
@@ -279,7 +267,6 @@ INSERT INTO   company_contact  (  company_address_id ,  name ,  position ,  phon
 -- -----------------------------------------------------
 -- Data for table   company_has_configurations 
 -- -----------------------------------------------------
- 
 INSERT INTO   company_has_configurations  ( company_id ,  configurations_id ,  version ,  update_by ,  date_of_update ,  users_col ) VALUES 
 (1, 1, 1.5, 'сисадмин', '2024-12-05', 20),
 (2, 1, 2.0, 'сисадмин', '2025-01-12', 30),
@@ -291,20 +278,8 @@ INSERT INTO   company_has_configurations  ( company_id ,  configurations_id ,  v
 -- -----------------------------------------------------
 -- Data for table   type_of_business_has_company 
 -- -----------------------------------------------------
- 
 INSERT INTO   type_of_business_has_company  ( company_id ,  type_of_business_id ) VALUES 
 (1, 1),
 (2, 3),
 (3, 3),
 (4, 2);
- 
-
-/*
-SET FOREIGN_KEY_CHECKS=0;
-DELETE FROM company WHERE id = 1;
-SELECT * FROM checklist_for_company;
-SELECT * FROM company_has_configurations;
-
-SELECT * FROM type_of_business_has_company;
-SELECT * FROM company_address;
-*/
