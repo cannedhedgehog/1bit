@@ -210,6 +210,8 @@ INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  pr
 ( 'инфоповод3', 'описание3', 1, 1000, 4000, 3, 3, 6),
 ( 'инфоповод4', 'описание4', 0, 2500, 6000, 2, 2, 24);
  
+ INSERT INTO   checklist  (  title ,  description ,  priority ,  price_from ,  price_to ,  configurations_id ,  type_of_business_id ,  duration ) VALUES 
+ ( '1111', 'описание1', 1, 1500, 5000, 1, 1, 6);
 
 -- -----------------------------------------------------
 -- Data for table   group_of_companies 

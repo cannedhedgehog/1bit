@@ -23,21 +23,22 @@ CALL request_brief(2)// -- пример вызова
 -- ------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE generating_checklist(IN companyId INT)
 BEGIN
-	IF NOT EXISTS (SELECT * FROM checklist_for_company WHERE checklist_id = (SELECT ch.id FROM checklist ch JOIN company_has_configurations chc ON ch.configurations_id = chc.configurations_id AND chc.company_id = companyId JOIN type_of_business_has_company tobhc ON ch.type_of_business_id = tobhc.type_of_business_id AND tobhc.company_id = companyId)) THEN
-		SELECT c.name AS company_name, ch.title, ch.price_from, ch.price_to FROM checklist ch 
-		JOIN company c ON c.id = companyId JOIN company_has_configurations chc ON (c.id = chc.company_id)
-		JOIN configurations conf ON (chc.configurations_id = conf.id) JOIN type_of_business_has_company tobhc ON (c.id = tobhc.company_id)
-		JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id)
-		WHERE ch.type_of_business_id = tob.id AND ch.configurations_id = conf.id ORDER BY ch.priority DESC LIMIT 5;
-	ELSE
-		SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Для этой компании уже существуют подходящие чеклисты';
-	END IF;
+	SELECT c.name AS company_name, ch.title, ch.price_from, ch.price_to 
+	FROM checklist ch 
+	JOIN company c ON c.id = companyId 
+	JOIN company_has_configurations chc ON (c.id = chc.company_id)
+	JOIN configurations conf ON (chc.configurations_id = conf.id) 
+	JOIN type_of_business_has_company tobhc ON (c.id = tobhc.company_id)
+	JOIN type_of_business tob ON (tobhc.type_of_business_id = tob.id)
+	WHERE ch.type_of_business_id = tob.id AND ch.configurations_id = conf.id AND ch.id NOT IN (SELECT checklist_id FROM checklist_for_company)
+	ORDER BY ch.priority DESC 
+	LIMIT 5;
 END //
 
-CALL generating_checklist(2)// -- пример вызова
+CALL generating_checklist(1)// -- пример вызова
 
-/* test
-INSERT INTO checklist_for_company (company_id, checklist_id, status, comment, date, employee_id ) VALUE (2,2,'отказано',NULL, current_date(), 1) //
+/*
+INSERT INTO checklist_for_company (company_id, checklist_id, status, final_price, comment, date, employee_id ) VALUE (1,5,'отказано',3000,NULL, current_date(), 1) //
 select * from checklist_for_company//
 */
 
@@ -132,7 +133,7 @@ CALL request_checklist_info(1)//
 CREATE PROCEDURE cleanup_expired_checklist_for_company()
 BEGIN
     DELETE cfc FROM checklist_for_company cfc JOIN checklist c ON (cfc.checklist_id = c.id)
-    WHERE (cfc.status = 'отказано' OR cfc.status = 'под вопросом') AND DATE_ADD(cfc.date, INTERVAL c.duration DAY) < NOW();
+    WHERE (cfc.status = 'отказано' OR cfc.status = 'под вопросом') AND DATE_ADD(cfc.date, INTERVAL c.duration DAY) < NOW() AND c.onetime_or_periodic = 0;
 END //
 
 -- ------------------------------
